@@ -4,7 +4,7 @@
 #include <time.h>
 #include <mpi.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define BIDIRECTIONAL 0
 
 static inline int min(int, int);
@@ -53,7 +53,7 @@ void rand_adj_matrix(int** matrix, int size) {
     }
 }
 
-// Output a matrix to stdout
+// Print matrix to stdout
 void print_matrix(int** matrix, int rows, int cols) {
     for (int i = 0; i < rows; i++) {
         for (int j = 0; j < cols; j++) {
@@ -107,25 +107,16 @@ void floyd_par(int proc_id, int proc_sz, int** m, int size) {
 } 
 
 // Simple function that returns minimum of two input integers
-inline int min(int a, int b) {
-    int x = a > b ? b : a;
-    return x;
-}
+inline int min(int a, int b) { return a > b ? b : a; }
 
 // Returns the rank of the process assigned to this row
-inline int block_owner(int row_id, int proc_sz, int row_sz) {
-    return proc_sz*row_id/row_sz;
-}
+inline int block_owner(int r, int p, int n) { return p*r/n; }
 
 // Returns the number of rows assigned to a particular process
-inline int block_size(int proc_id, int proc_sz, int row_sz) {
-    return row_sz*row_sz/proc_sz;
-}
+inline int block_size(int k, int p, int n) { return n*n/p; }
 
 // Returns the matrix row mapped to a particular process
-inline int block_low(int proc_id, int proc_sz, int row_sz) {
-    return proc_id*row_sz*row_sz/proc_sz;
-}
+inline int block_low(int k, int p, int n) { return k*n*n/p; }
 
 int main(int argc, char** argv) {
     int proc;    //number of processes
@@ -145,7 +136,7 @@ int main(int argc, char** argv) {
     // start up
     int sz_matrix = args[0];    //size of adjacency matrix
     if (sz_matrix % proc != 0) {
-        fprintf(stderr,"%s: only works when n is factor of %d\n", argv[0], sz_matrix);
+        fprintf(stderr,"%s: only works when n is a factor of %d\n", argv[0], sz_matrix);
         MPI_Abort(MPI_COMM_WORLD,1);
     }
 
@@ -153,8 +144,10 @@ int main(int argc, char** argv) {
     m = generate_matrix(sz_matrix, sz_matrix);
     if (rank == 0) {
         rand_adj_matrix(m, sz_matrix);
-        if (DEBUG == 1)
+        if (DEBUG) {
+            printf("initial matrix:\n");
             print_matrix(m, sz_matrix, sz_matrix);
+        }
     }
 
     // generate scatter data and local data
@@ -172,7 +165,7 @@ int main(int argc, char** argv) {
     MPI_Scatterv(&(m[0][0]), proc_blksz, proc_offset, MPI_INT, &(m_part[0][0]), proc_blksz[rank], MPI_INT, 0, MPI_COMM_WORLD);
 
     // print local data
-    if (DEBUG == 1) {
+    if (DEBUG) {
         for (int i = 0; i < proc; i++) {
             if (rank == i) {
                 printf("rank: %d size: %d offset: %d\n", rank, proc_blksz[rank], proc_offset[rank]);
@@ -180,25 +173,32 @@ int main(int argc, char** argv) {
             }
             MPI_Barrier(MPI_COMM_WORLD);
         }
-    }
-
-    // parallel floyd
-    floyd_par(rank, proc, m_part, sz_matrix);
-
-    if (DEBUG == 1) {
         // sequential floyd for reference
         if (rank == 0) {
             printf("sequential floyd:\n");
             floyd_seq(m, sz_matrix);
             print_matrix(m, sz_matrix, sz_matrix);
         }
+    }
 
+    // parallel floyd
+    floyd_par(rank, proc, m_part, sz_matrix);
+
+    // gather results from each proces
+    MPI_Gatherv(&(m_part[0][0]), proc_blksz[rank], MPI_INT, &(m[0][0]), proc_blksz, proc_offset, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (DEBUG) {
         for (int i = 0; i < proc; i++) {
             if (rank == i) {
                 printf("parallel floyd for rank: %d\n", rank);
                 print_matrix(m_part, proc_blksz[rank]/sz_matrix, sz_matrix);
             }
             MPI_Barrier(MPI_COMM_WORLD);
+        }
+
+        if (rank == 0) {
+            printf("final matrix:\n");
+            print_matrix(m, sz_matrix, sz_matrix);
         }
     }
 
