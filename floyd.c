@@ -4,13 +4,14 @@
 #include <time.h>
 #include <mpi.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define BIDIRECTIONAL 0
 
 static inline int min(int, int);
 static inline int block_low(int, int, int);
 static inline int block_owner(int, int, int);
 static inline int block_size(int, int, int);
+
 
 // Construct a *contiguous* square matrix
 int **generate_matrix(int rows, int cols) {
@@ -87,19 +88,17 @@ void floyd_par(int proc_id, int proc_sz, int** m, int size) {
     int offset;
     int root;
     int* temp = (int *)malloc(size*sizeof(int));
-    if (DEBUG == 1)
-        printf("Rank: %d #Processes: %d", proc_id, proc_sz);
 
     for (int k = 0; k < size; k++) {
         root = block_owner(k, proc_sz, size);
         if (root == proc_id) {
-            offset = - block_low(proc_id, proc_sz, size);
+            offset = k - block_low(proc_id, proc_sz, size)/size;
             for (int j = 0; j < size; j++)
                 temp[j] = m[offset][j];
         }
         //broadcasts "temp", which is size*MPI_INT long, by rank root
         MPI_Bcast(temp, size, MPI_INT, root, MPI_COMM_WORLD);
-        for (int i = 0; i < block_size(proc_id, proc_sz, size); i ++) {
+        for (int i = 0; i < block_size(proc_id, proc_sz, size)/size; i ++) {
             for (int j = 0; j < size; j++)
                 m[i][j] = min(m[i][j], m[i][k] + temp[j]);
         }
@@ -154,7 +153,8 @@ int main(int argc, char** argv) {
     m = generate_matrix(sz_matrix, sz_matrix);
     if (rank == 0) {
         rand_adj_matrix(m, sz_matrix);
-        print_matrix(m, sz_matrix, sz_matrix);
+        if (DEBUG == 1)
+            print_matrix(m, sz_matrix, sz_matrix);
     }
 
     // generate scatter data and local data
@@ -172,25 +172,35 @@ int main(int argc, char** argv) {
     MPI_Scatterv(&(m[0][0]), proc_blksz, proc_offset, MPI_INT, &(m_part[0][0]), proc_blksz[rank], MPI_INT, 0, MPI_COMM_WORLD);
 
     // print local data
-    for (int i = 0; i < proc; i++) {
-        if (rank == i) {
-            printf("rank: %d size: %d offset: %d\n", rank, proc_blksz[rank], proc_offset[rank]);
-            print_matrix(m_part, proc_blksz[rank]/sz_matrix, sz_matrix);
+    if (DEBUG == 1) {
+        for (int i = 0; i < proc; i++) {
+            if (rank == i) {
+                printf("rank: %d size: %d offset: %d\n", rank, proc_blksz[rank], proc_offset[rank]);
+                print_matrix(m_part, proc_blksz[rank]/sz_matrix, sz_matrix);
+            }
+            MPI_Barrier(MPI_COMM_WORLD);
         }
-        MPI_Barrier(MPI_COMM_WORLD);
-    }
-
-    // sequential floyd for reference
-    if (rank == 0) {
-        printf("sequential floyd:\n");
-        floyd_seq(m, sz_matrix);
-        print_matrix(m, sz_matrix, sz_matrix);
     }
 
     // parallel floyd
-    floyd_par(rank, proc, m_part, proc_blksz[rank]/sz_matrix);
-    printf("parallel floyd for rank: %d\n", rank);
-    print_matrix(m_part, proc_blksz[rank]/sz_matrix, sz_matrix);
+    floyd_par(rank, proc, m_part, sz_matrix);
+
+    if (DEBUG == 1) {
+        // sequential floyd for reference
+        if (rank == 0) {
+            printf("sequential floyd:\n");
+            floyd_seq(m, sz_matrix);
+            print_matrix(m, sz_matrix, sz_matrix);
+        }
+
+        for (int i = 0; i < proc; i++) {
+            if (rank == i) {
+                printf("parallel floyd for rank: %d\n", rank);
+                print_matrix(m_part, proc_blksz[rank]/sz_matrix, sz_matrix);
+            }
+            MPI_Barrier(MPI_COMM_WORLD);
+        }
+    }
 
     // clean up
     free_matrix(m);
