@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-//#include <omp.h>
+#include <omp.h>
 
 #define DEBUG 1
 #define ARR_MAX 100
@@ -47,19 +47,23 @@ int main(int argc, char** argv) {
     int a[n];
     clock_t tstart, tstop;
 
-    //printf("%s\n", argv[1]);
-    //printf("%ld\n", n);
-
     random_array(n, a);
-    printf("initial array:\n");
-    //print_array(n, a);
+    if (DEBUG) {
+        //printf("%s\n", argv[1]);
+        //printf("%ld\n", n);
+        printf("initial array:\n");
+        print_array(n, a);
+    }
 
     tstart = clock();
     quicksort_seq(a, 0, n);
     tstop = clock();
 
-    printf("\nsorted array:\n");
-    //print_array(n, a);
+    if (DEBUG) {
+        printf("\nsorted array:\n");
+        print_array(n, a);
+    }
+
     printf("time elapsed: %.5f s\n",
             (tstop-tstart)/(double)CLOCKS_PER_SEC);
 

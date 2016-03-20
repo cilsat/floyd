@@ -98,6 +98,7 @@ void floyd_par(int proc_id, int proc_sz, int** m, int size) {
     for (int k = 0; k < size; k++) {
         root = block_owner(k, proc_sz, size);
         if (root == proc_id) {
+            // get global row that corresponds to local row
             offset = k - block_low(proc_id, proc_sz, size)/size;
             for (int j = 0; j < size; j++)
                 temp[j] = m[offset][j];
