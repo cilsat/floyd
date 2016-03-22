@@ -6,8 +6,8 @@ void push (heap_t *h, int priority, int data) {
         h->size = h->size ? h->size*2 : 4;
         h->nodes = realloc(h->nodes, h->size*sizeof(node_t));
     }
-    int i = h->len + 1;
-    int j = i / 2;
+    long i = h->len + 1;
+    long j = i / 2;
     while (i > 1 && h->nodes[j].priority > priority) {
         h->nodes[i] = h->nodes[j];
         i = j;
@@ -19,7 +19,7 @@ void push (heap_t *h, int priority, int data) {
 }
 
 int pop (heap_t *h) {
-    int i, j, k;
+    long i, j, k;
     if (!h->len) {
         return -INF;
     }
@@ -48,7 +48,7 @@ int pop (heap_t *h) {
 
 int check_node(heap_t *h, int data) {
     int found = 0;
-    for (int i = 1; i <= h->len; i++) {
+    for (long i = 1; i <= h->len; i++) {
         if (data == h->nodes[i].data) {
             found = 1;
             break;
@@ -58,7 +58,7 @@ int check_node(heap_t *h, int data) {
 }
 
 void print_heap(heap_t *h) {
-    for (int i = 1; i <= h->len; i++) {
+    for (long i = 1; i <= h->len; i++) {
         printf("%d ", h->nodes[i].data);
     }
     printf("\n");

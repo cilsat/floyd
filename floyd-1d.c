@@ -8,10 +8,10 @@
 #define BIDIRECTIONAL 0
 
 // Construct a *contiguous* square matrix
-int **generate_matrix(int rows, int cols) {
+int **generate_matrix(long rows, long cols) {
     int **matrix = (int **)malloc(rows*sizeof(int*));
     int *data = (int *)malloc(rows*cols*sizeof(int));
-    for (int i = 0; i < rows; i++)
+    for (long i = 0; i < rows; i++)
         matrix[i] = &(data[cols*i]);
     return matrix;
 }

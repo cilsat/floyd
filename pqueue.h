@@ -8,8 +8,8 @@ typedef struct {
 
 typedef struct {
     node_t *nodes;
-    int len;
-    int size;
+    long len;
+    long size;
 } heap_t;
 
 void push (heap_t *h, int priority, int data);

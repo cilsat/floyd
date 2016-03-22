@@ -1,7 +1,7 @@
 #include <mpi.h>
 #include "matrix2d.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 // Simple function that returns minimum of two input integers
 static inline int min(int a, int b) { return a > b ? b : a; }
@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
     int** m;    //global matrix
     int** m_part;   // local matrix
     int args[argc];
+    clock_t t_start, t_stop;
 
     MPI_Init(NULL, NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &proc);
@@ -79,6 +80,7 @@ int main(int argc, char** argv) {
             printf("initial matrix:\n");
             print_matrix(m, sz_matrix, sz_matrix);
         }
+        t_start = clock();
     }
 
     // generate scatter data and local data
@@ -131,6 +133,11 @@ int main(int argc, char** argv) {
             printf("final matrix:\n");
             print_matrix(m, sz_matrix, sz_matrix);
         }
+    }
+
+    if (rank == 0) {
+        t_stop = clock();
+        printf("elapsed time: %.5f s\n", (t_stop - t_start)/(double)CLOCKS_PER_SEC);
     }
 
     // clean up
