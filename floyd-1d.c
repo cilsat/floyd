@@ -1,10 +1,20 @@
+/*********************************************************************
+* nama: Cil Hardianto Satriawan
+* nim: 23515053
+* keterangan: 
+*   compilation: mpicc -g -Wall -std=c11 -o floyd floyd.c
+*   execute: mpirun -np <# processes> --hostfile ~/.mpi_hostfile ./floyd <matrix size>
+*   example: mpirun -np 16 --hostfile ~/.mpi_hostfile ./floyd 1600
+*
+*   For comparison with sequential version of algorithm, set DEBUG to 1
+********************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <mpi.h>
-#include "matrix2d.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #define BIDIRECTIONAL 0
 
 // Construct a *contiguous* square matrix
@@ -17,13 +27,13 @@ int **generate_matrix(long rows, long cols) {
 }
 
 // Populate a square matrix randomly
-// The generated vertices are bidirectional (same weight forwards and backwards)
+// The generated vertices may be bidirectional if specified
 // Hence the result is a square symmetrical matrix
-void rand_adj_matrix(int** matrix, int size) {
+void rand_adj_matrix(int** matrix, long size) {
     srand(time(NULL));
-    for (int i = 0; i < size; i++) {
+    for (long i = 0; i < size; i++) {
         if (BIDIRECTIONAL == 1) {
-            for (int j = i; j < size; j++) {
+            for (long j = i; j < size; j++) {
                 int r;
                 if (i == j) r = 0;
                 else {
@@ -34,7 +44,7 @@ void rand_adj_matrix(int** matrix, int size) {
                 matrix[j][i] = r;
             }
         } else {
-            for (int j = 0; j < size; j++) {
+            for (long j = 0; j < size; j++) {
                 int r;
                 if (i == j) r = 0;
                 else {
@@ -48,9 +58,9 @@ void rand_adj_matrix(int** matrix, int size) {
 }
 
 // Print matrix to stdout
-void print_matrix(int** matrix, int rows, int cols) {
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
+void print_matrix(int** matrix, long rows, long cols) {
+    for (long i = 0; i < rows; i++) {
+        for (long j = 0; j < cols; j++) {
             int r = matrix[i][j];
             if (r <= 100) printf("%d ", r);
             else printf("& ");
@@ -70,13 +80,13 @@ void free_matrix(int** matrix) {
 static inline int min(int a, int b) { return a > b ? b : a; }
 
 // Returns the rank of the process assigned to this row
-static inline int block_owner(int r, int p, int n) { return p*r/n; }
+static inline int block_owner(int r, int p, long n) { return p*r/n; }
 
 // Returns the number of rows assigned to a particular process
-static inline int block_size(int k, int p, int n) { return n*n/p; }
+static inline int block_size(int p, long n) { return n*n/p; }
 
 // Returns the matrix row mapped to a particular process
-static inline int block_low(int k, int p, int n) { return k*n*n/p; }
+static inline int block_low(int k, int p, long n) { return k*n*n/p; }
 
 // Sequential implementation of Floyd's algorithm
 void floyd_seq(int** matrix, int size) {
@@ -90,23 +100,23 @@ void floyd_seq(int** matrix, int size) {
 }
 
 // Parallel implementation of Floyd's algorithm
-void floyd_par(int proc_id, int proc_sz, int** m, int size) {
+void floyd_par(int proc_id, int proc_sz, int** m, long size) {
     int offset;
     int root;
     int* temp = (int *)malloc(size*sizeof(int));
 
-    for (int k = 0; k < size; k++) {
+    for (long k = 0; k < size; k++) {
         root = block_owner(k, proc_sz, size);
         if (root == proc_id) {
             // get global row that corresponds to local row
             offset = k - block_low(proc_id, proc_sz, size)/size;
-            for (int j = 0; j < size; j++)
+            for (long j = 0; j < size; j++)
                 temp[j] = m[offset][j];
         }
         //broadcasts "temp", which is size*MPI_INT long, by rank root
         MPI_Bcast(temp, size, MPI_INT, root, MPI_COMM_WORLD);
-        for (int i = 0; i < block_size(proc_id, proc_sz, size)/size; i ++) {
-            for (int j = 0; j < size; j++)
+        for (long i = 0; i < block_size(proc_sz, size)/size; i ++) {
+            for (long j = 0; j < size; j++)
                 m[i][j] = min(m[i][j], m[i][k] + temp[j]);
         }
     }
@@ -119,6 +129,7 @@ int main(int argc, char** argv) {
     int** m;    //global matrix
     int** m_part;   // local matrix
     int args[argc];
+    clock_t t_start, t_stop;
 
     MPI_Init(NULL, NULL);
     MPI_Comm_size(MPI_COMM_WORLD, &proc);
@@ -143,20 +154,21 @@ int main(int argc, char** argv) {
             printf("initial matrix:\n");
             print_matrix(m, sz_matrix, sz_matrix);
         }
+        t_start = clock();
     }
 
-    // generate scatter data and local data
+    // generate block offset points and block sizes
     int proc_blksz[proc];
     int proc_offset[proc];
     for (int i = 0; i < proc; i++) {
-        proc_blksz[i] = block_size(i, proc, sz_matrix);
+        proc_blksz[i] = block_size(proc, sz_matrix);
         proc_offset[i] = block_low(i, proc, sz_matrix);
     }
 
-    // init local matrices
+    // init local matrix blocks
     m_part = generate_matrix(proc_blksz[rank]/sz_matrix, sz_matrix);
 
-    // scatter
+    // scatter global matrix to each local block
     MPI_Scatterv(&(m[0][0]), proc_blksz, proc_offset, MPI_INT, &(m_part[0][0]), proc_blksz[rank], MPI_INT, 0, MPI_COMM_WORLD);
 
     // print local data
@@ -195,6 +207,11 @@ int main(int argc, char** argv) {
             printf("final matrix:\n");
             print_matrix(m, sz_matrix, sz_matrix);
         }
+    }
+
+    if (rank == 0) {
+        t_stop = clock();
+        printf("elapsed time: %.5f s\n", (t_stop - t_start)/(double)CLOCKS_PER_SEC);
     }
 
     // clean up
