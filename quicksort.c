@@ -5,14 +5,15 @@
 
 #define DEBUG 1
 #define ARR_MAX 100
+omp_set_num_threads(4);
 
 void random_array(long n, int a[n]) {
     for (long i = 0; i < n; i++)
         a[i] = ((int) rand())%ARR_MAX;
 }
 
-void print_array(long n, int a[n]) {
-    for (long i = 0; i < n; i++)
+void print_array(int a[], long start, long stop) {
+    for (long i = start; i < stop; i++)
         printf("%d ", a[i]);
     printf("\n");
 }
@@ -34,12 +35,26 @@ void quicksort_seq(int a[], long lo, long hi) {
             }
         }
         swap(a, lo, s);
+        print_array(a, lo, hi);
         quicksort_seq(a, lo, s);
         quicksort_seq(a, s+1, hi);
     }
 }
 
-void quicksort_par(int a[], long lo, long hi) {
+void quicksort_par(int a[], int pivot, long lo, long hi) {
+    #pragma omp parallel for
+    if (lo < hi) {
+        long s = lo;
+        for (long i = lo+1; i < hi; i++) {
+            if (a[i] <= pivot) {
+                s++;
+                swap(a, s, i);
+            }
+        }
+        swap(a, lo, s);
+        quicksort_seq(a, lo, s);
+        quicksort_seq(a, s+1, hi);
+    }
 }
 
 int main(int argc, char** argv) {
@@ -49,19 +64,19 @@ int main(int argc, char** argv) {
 
     random_array(n, a);
     if (DEBUG) {
-        //printf("%s\n", argv[1]);
-        //printf("%ld\n", n);
         printf("initial array:\n");
-        print_array(n, a);
+        print_array(a, 0, n);
+        printf("\n");
     }
 
     tstart = clock();
-    quicksort_seq(a, 0, n);
+    quicksort_par(a, 0, n);
     tstop = clock();
 
     if (DEBUG) {
         printf("\nsorted array:\n");
-        print_array(n, a);
+        print_array(a, 0, n);
+        printf("\n");
     }
 
     printf("time elapsed: %.5f s\n",

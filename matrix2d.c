@@ -1,6 +1,7 @@
 #include "matrix2d.h"
 
 #define BIDIRECTIONAL 0
+#define INF 9999
 
 // Construct a *contiguous* square matrix
 int **generate_matrix(int rows, int cols) {
@@ -23,7 +24,7 @@ void rand_adj_matrix(int** matrix, int size) {
                 if (i == j) r = 0;
                 else {
                     r = (int) rand() % 12 + 1;
-                    if (r >= 10) r = 999;
+                    if (r >= 10) r = INF;
                 }
                 matrix[i][j] = r;
                 matrix[j][i] = r;
@@ -34,7 +35,7 @@ void rand_adj_matrix(int** matrix, int size) {
                 if (i == j) r = 0;
                 else {
                     r = (int) rand() % 12 + 1;
-                    if (r >= 10) r = 999;
+                    if (r >= 10) r = INF;
                 }
                 matrix[i][j] = r;
             }
