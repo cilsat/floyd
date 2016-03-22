@@ -22,19 +22,22 @@ void johnson_seq(int **m, int m_size, int source) {
         if (u == -INF) break;
         for (int i = 0; i < m_size; i++) {
             int cur_dist = m[u][i];
-            if (DEBUG == 1) printf("%d %d %d\n", i, cur_dist, dist[i]);
+            if (DEBUG == 1) 
+                printf("%d %d %d\n", i, cur_dist, dist[i]);
             if (cur_dist != INF && cur_dist + dist[u] < dist[i]) {
                 dist[i] = cur_dist + dist[u];
                 if (!check_node(h, i)) push(h, dist[i], i);
             }
         }
         if (DEBUG == 2) {
-            for (int i = 0; i < m_size; i++) printf("%d ", dist[i]);
+            for (int i = 0; i < m_size; i++) 
+                printf("%d ", dist[i]);
             print_heap(h);
         }
     }
     if (DEBUG == 3) {
-        for (int i = 0; i < m_size; i++) printf("%d ", dist[i]);
+        for (int i = 0; i < m_size; i++) 
+            printf("%d ", dist[i]);
         printf("\n");
         print_heap(h);
     }
@@ -46,7 +49,6 @@ void johnson_par(int **m, int m_size, int source) {
     int dist[m_size];
     int i, u;
     int cur_dist;
-    omp_set_num_threads(4);
 
     dist[source] = 0;
     push(h, 0, source);
@@ -63,7 +65,8 @@ void johnson_par(int **m, int m_size, int source) {
             #pragma omp parallel for private(i, cur_dist)
             for (i = 0; i < m_size; i++) {
                 cur_dist = m[u][i];
-                if (DEBUG == 1) printf("%d %d %d\n", i, cur_dist, dist[i]);
+                if (DEBUG == 1) 
+                    printf("%d %d %d\n", i, cur_dist, dist[i]);
                 if (cur_dist != INF && cur_dist + dist[u] < dist[i]) {
                     dist[i] = cur_dist + dist[u];
                     #pragma omp critical
@@ -71,7 +74,8 @@ void johnson_par(int **m, int m_size, int source) {
                 }
             }
             if (DEBUG == 2) {
-                for (int i = 0; i < m_size; i++) printf("%d ", dist[i]);
+                for (int i = 0; i < m_size; i++) printf
+                    ("%d ", dist[i]);
                 printf("\n");
                 print_heap(h);
                 printf("\n");
@@ -96,12 +100,15 @@ int main(int argc, char** argv) {
     tstart = clock();
     johnson_par(m, m_size, 0);
     tstop = clock();
-    if (DEBUG) printf("Time elapsed: %.5f s\n\n", (tstop-tstart)/(double)CLOCKS_PER_SEC);
+    if (DEBUG) printf("Sequential time elapsed: %.5f s\n\n", 
+            (tstop-tstart)/(double)CLOCKS_PER_SEC);
 
+    omp_set_num_threads(4);
     tstart = clock();
     johnson_seq(m, m_size, 0);
     tstop = clock();
-    if (DEBUG) printf("Time elapsed: %.5f s\n\n", (tstop-tstart)/(double)CLOCKS_PER_SEC);
+    if (DEBUG) printf("Parallel Time elapsed: %.5f s\n\n", 
+            (tstop-tstart)/(double)CLOCKS_PER_SEC);
 
     free_matrix(m);
 
