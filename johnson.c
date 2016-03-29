@@ -1,3 +1,14 @@
+/*********************************************************************
+* nama: Cil Hardianto Satriawan
+* nim: 23515053
+* keterangan: 
+*   compilation: gcc -std=c11 -c matrix2d.h pqueue.h && gcc -std=c11 -fopenmp -o johnson matrix2d.c pqueue.c johnson.c
+*   execute: ./johnson <#vertices>
+*   example: mpirun -np 16 --hostfile ~/.mpi_hostfile ./floyd 1600
+*
+*   For comparison with sequential version of algorithm, set DEBUG to 1
+********************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
