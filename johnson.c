@@ -88,7 +88,7 @@ void johnson_par(int **m, long m_size, int source) {
 int main(int argc, char** argv) {
     int m_size = strtol(argv[1], NULL, 10);
     int **m = generate_matrix(m_size, m_size);
-    clock_t tseq_start, tseq_stop, tpar_start, tpar_stop;
+    double tseq_start, tseq_stop, tpar_start, tpar_stop;
 
     rand_adj_matrix(m, m_size);
     if (DEBUG==1) print_matrix(m, m_size, m_size);
@@ -96,19 +96,17 @@ int main(int argc, char** argv) {
     int p = omp_get_num_procs();
     omp_set_num_threads(p);
 
-    printf("start!\n");
-    tpar_start = clock();
+    tpar_start = omp_get_wtime();
     johnson_par(m, m_size, 0);
-    tpar_stop = clock();
-    printf("stop\n");
-    if (DEBUG) printf("Parallel time elapsed: %.5f s\n\n", 
-            (tpar_stop-tpar_start)/(p*(double)CLOCKS_PER_SEC));
+    tpar_stop = omp_get_wtime();
+    if (DEBUG) printf("par,%d,%d,%f s\n", 
+            m_size, p, (tpar_stop-tpar_start));
 
-    tseq_start = clock();
+    tseq_start = omp_get_wtime();
     johnson_seq(m, m_size, 0);
-    tseq_stop = clock();
-    if (DEBUG) printf("Sequential time elapsed: %.5f s\n\n", 
-            (tseq_stop-tseq_start)/(double)CLOCKS_PER_SEC);
+    tseq_stop = omp_get_wtime();
+    if (DEBUG) printf("seq,%d,%d,%f s\n", 
+            m_size, p, (tseq_stop-tseq_start));
 
     free_matrix(m);
 
