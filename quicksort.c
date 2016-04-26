@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <omp.h>
 
@@ -26,8 +27,8 @@ static inline void swap(int *a, long int s, long int i) {
 }
 
 long int partition(int *a, long int p, long int r) {
-    int lt[r-p];
-    int gt[r-p];
+    int *lt = (int *) malloc((r-p)*sizeof(int));
+    int *gt = (int *) malloc((r-p)*sizeof(int));
     int idx = a[r];
     long int i, j;
     long int lt_n = 0;
@@ -51,6 +52,9 @@ long int partition(int *a, long int p, long int r) {
     for (j = 0; j < gt_n; j++) {
         a[p+lt_n+j+1] = gt[j];
     }
+
+    free(lt);
+    free(gt);
 
     return p+lt_n;
 }
@@ -94,6 +98,7 @@ int main(int argc, char** argv) {
 
     a = random_array(n);
     b = random_array(n);
+    memcpy(b, a, sizeof(*a));
 
     if (DEBUG) {
         printf("initial array:\n");
