@@ -3,75 +3,106 @@
 #include <time.h>
 #include <omp.h>
 
-#define DEBUG 1
-#define ARR_MAX 100
-omp_set_num_threads(4);
+#define DEBUG 0
+#define ARR_MAX 1000
 
-void random_array(long n, int a[n]) {
-    for (long i = 0; i < n; i++)
+int *random_array(long int n) {
+    int *a = (int *)malloc(n*sizeof(int));
+    for (long int i = 0; i < n; i++)
         a[i] = ((int) rand())%ARR_MAX;
+    return a;
 }
 
-void print_array(int a[], long start, long stop) {
-    for (long i = start; i < stop; i++)
+void print_array(int *a, long int start, long int stop) {
+    for (long int i = start; i < stop; i++)
         printf("%d ", a[i]);
     printf("\n");
 }
 
-static inline void swap(int a[], long s, long i) {
+static inline void swap(int *a, long int s, long int i) {
     int temp = a[s];
     a[s] = a[i];
     a[i] = temp;
 }
 
-void quicksort_seq(int a[], long lo, long hi) {
+long int partition(int *a, long int p, long int r) {
+    int lt[r-p];
+    int gt[r-p];
+    int idx = a[r];
+    long int i, j;
+    long int lt_n = 0;
+    long int gt_n = 0;
+
+#pragma omp parallel for
+    for (i = p; i < r; i++) {
+        if (a[i] < a[r]) {
+            lt[lt_n++] = a[i];
+        } else {
+            gt[gt_n++] = a[i];
+        }
+    }
+
+    for (i = 0; i < lt_n; i++) {
+        a[p+i] = lt[i];
+    }
+
+    a[p+lt_n] = idx;
+
+    for (j = 0; j < gt_n; j++) {
+        a[p+lt_n+j+1] = gt[j];
+    }
+
+    return p+lt_n;
+}
+
+void quicksort_seq(int *a, long int lo, long int hi) {
+    long int i, div;
     if (lo < hi) {
         int x = a[lo];
-        long s = lo;
-        for (long i = lo+1; i < hi; i++) {
+        div = lo;
+        for (i = lo+1; i < hi; i++) {
             if (a[i] <= x) {
-                s++;
-                swap(a, s, i);
+                div++;
+                swap(a, div, i);
             }
         }
-        swap(a, lo, s);
-        print_array(a, lo, hi);
-        quicksort_seq(a, lo, s);
-        quicksort_seq(a, s+1, hi);
+        swap(a, lo, div);
+        quicksort_seq(a, lo, div);
+        quicksort_seq(a, div+1, hi);
     }
 }
 
-void quicksort_par(int a[], int pivot, long lo, long hi) {
-    #pragma omp parallel for
+void quicksort_par(int *a, long int lo, long int hi) {
+    long int div;
     if (lo < hi) {
-        long s = lo;
-        for (long i = lo+1; i < hi; i++) {
-            if (a[i] <= pivot) {
-                s++;
-                swap(a, s, i);
-            }
+        div = partition(a, lo, hi);
+
+#pragma omp parallel sections
+        {
+#pragma omp section
+            quicksort_par(a, lo, div-1);
+#pragma omp section
+            quicksort_par(a, div+1, hi);
         }
-        swap(a, lo, s);
-        quicksort_seq(a, lo, s);
-        quicksort_seq(a, s+1, hi);
     }
 }
 
 int main(int argc, char** argv) {
-    long n = strtol(argv[1], NULL, 10);
-    int a[n];
-    clock_t tstart, tstop;
+    long int n = strtol(argv[1], NULL, 10);
+    int *a, *b;
+    double dstart, dstop;
 
-    random_array(n, a);
+    a = random_array(n);
+    b = random_array(n);
+
     if (DEBUG) {
         printf("initial array:\n");
         print_array(a, 0, n);
-        printf("\n");
     }
 
-    tstart = clock();
-    quicksort_par(a, 0, n);
-    tstop = clock();
+    dstart = omp_get_wtime();
+    quicksort_seq(a, 0, n);
+    dstop = omp_get_wtime();
 
     if (DEBUG) {
         printf("\nsorted array:\n");
@@ -79,8 +110,26 @@ int main(int argc, char** argv) {
         printf("\n");
     }
 
-    printf("time elapsed: %.5f s\n",
-            (tstop-tstart)/(double)CLOCKS_PER_SEC);
+    printf("seq time: %.5f s\n", dstop-dstart);
+
+    if (DEBUG) {
+        printf("initial array:\n");
+        print_array(b, 0, n);
+    }
+
+    dstart = omp_get_wtime();
+    quicksort_par(b, 0, n-1);
+    dstop = omp_get_wtime();
+
+    if (DEBUG) {
+        printf("\nsorted array:\n");
+        print_array(b, 0, n);
+        printf("\n");
+    }
+
+    printf("par time: %.5f s\n", dstop-dstart);
+    free(a);
+    free(b);
 
     return 0;
 }

@@ -42,7 +42,7 @@ flags = [
 '-Wno-long-long',
 '-Wno-variadic-macros',
 '-fexceptions',
-'-fopenmp',
+'/usr/lib/gcc/x86_64-linux-gnu/5/include',
 '-DNDEBUG',
 '-x',
 'c',
