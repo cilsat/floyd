@@ -43,12 +43,14 @@ long int partition(int *a, long int p, long int r) {
         }
     }
 
+#pragma omp parallel for
     for (i = 0; i < lt_n; i++) {
         a[p+i] = lt[i];
     }
 
     a[p+lt_n] = idx;
 
+#pragma omp parallel for
     for (j = 0; j < gt_n; j++) {
         a[p+lt_n+j+1] = gt[j];
     }
@@ -115,7 +117,7 @@ int main(int argc, char** argv) {
         printf("\n");
     }
 
-    printf("seq time: %.5f s\n", dstop-dstart);
+    printf("%.5f,", dstop-dstart);
 
     if (DEBUG) {
         printf("initial array:\n");
@@ -132,7 +134,7 @@ int main(int argc, char** argv) {
         printf("\n");
     }
 
-    printf("par time: %.5f s\n", dstop-dstart);
+    printf("%.5f\n", dstop-dstart);
     free(a);
     free(b);
 
