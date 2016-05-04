@@ -17,7 +17,7 @@
 #include <time.h>
 #include <omp.h>
 
-#define DEBUG 1
+#define DEBUG 0
 #define ARR_MAX 100000
 
 // generate random list of numbers for testing
@@ -135,9 +135,7 @@ int main(int argc, char** argv) {
         printf("\nsorted array:\n");
         print_array(a, 0, n);
         printf("\n");
-    }
-
-    //printf("%.5f,", dstop-dstart);
+    } else printf("%.5f,", dstop-dstart);
 
     if (DEBUG) {
         printf("initial array:\n");
@@ -158,9 +156,7 @@ int main(int argc, char** argv) {
         printf("\nsorted array:\n");
         print_array(b, 0, n);
         printf("\n");
-    }
-
-    //printf("%.5f\n", dstop-dstart);
+    } else printf("%.5f\n", dstop-dstart);
     free(a);
     free(b);
 
