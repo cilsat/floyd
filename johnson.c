@@ -15,7 +15,7 @@
 #include "matrix2d.h"
 #include "pqueue.h"
 
-#define DEBUG -1
+#define DEBUG 0
 #define INF 9999
 
 void johnson_seq(int **m, long m_size, int source) {
@@ -48,30 +48,45 @@ void johnson_seq(int **m, long m_size, int source) {
     free(h);
 }
 
+/* Johnson's algorithm parallel
+ * Take as input an adjacency matrix of vertices in a graph
+ * and a source vertex. Returns distance between source vertex
+ * and all other vertices in the graph. Can be trivially modified
+ * to calculate all-pairs shotest path by iterating source.
+ */
 void johnson_par(int **m, long m_size, int source) {
+    // allocate memory for min priority heap
     heap_t *h = calloc(1, sizeof(heap_t));
+    // initialize distances
     int dist[m_size];
+    // private variable for each process
     int cur_dist;
     long i;
 
+    // initialize distances
     dist[source] = 0;
+    // initialize min priority queue/heap
     push(h, 0, source);
-    #pragma omp parallel for
     for (i = 0; i < m_size; i++) {
         if (i != source) dist[i] = INF;
     }
 
+    // while queue is not empty
     while (1) {
         int u = pop(h);
         if (u == -INF) {
             break;
         }
         else {
+            // parallelize each vertex while comparing against source
             #pragma omp parallel for private(cur_dist)
             for (i = 0; i < m_size; i++) {
                 cur_dist = m[u][i];
+                // ignore if the two vertices aren't connected
+                // ignore if path through new vertex is longer
                 if (cur_dist != INF && cur_dist + dist[u] < dist[i]) {
                     dist[i] = cur_dist + dist[u];
+                    // block other processes from pushing into queue
                     #pragma omp critical
                     if (!check_node(h, i)) push(h, dist[i], i);
                 }
