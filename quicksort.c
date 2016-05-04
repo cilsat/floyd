@@ -18,7 +18,7 @@
 #include <omp.h>
 
 #define DEBUG 0
-#define ARR_MAX 100000
+#define ARR_MAX 1000
 
 // generate random list of numbers for testing
 int *random_array(long n) {
@@ -59,14 +59,12 @@ long partition(int *a, long p, long r) {
         }
     }
 
-#pragma omp parallel for
     for (i = 0; i < lt_n; i++) {
         a[p+i] = lt[i];
     }
 
     a[p+lt_n] = idx;
 
-#pragma omp parallel for
     for (j = 0; j < gt_n; j++) {
         a[p+lt_n+j+1] = gt[j];
     }
@@ -117,7 +115,7 @@ int main(int argc, char** argv) {
     double dstart, dstop;
 
     a = random_array(n);
-    b = random_array(n);
+    b = (int *)malloc(n*sizeof(int));
     for (long i = 0; i < n; i++) {
         b[i] = a[i];
     }
