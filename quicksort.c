@@ -18,7 +18,7 @@
 #include <omp.h>
 
 #define DEBUG 0
-#define ARR_MAX 1000
+#define ARR_MAX 100000
 
 // generate random list of numbers for testing
 int *random_array(long n) {
