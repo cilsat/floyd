@@ -18,13 +18,13 @@
 #include <omp.h>
 
 #define DEBUG 0
-#define ARR_MAX 100000
+#define ARR_MAX 1000
 
 // generate random list of numbers for testing
-int *random_array(long n) {
+int *random_array(long n, long max) {
     int *a = (int *)malloc(n*sizeof(int));
     for (long i = 0; i < n; i++)
-        a[i] = ((int) rand())%ARR_MAX;
+        a[i] = ((int) rand())%max;
     return a;
 }
 
@@ -111,10 +111,12 @@ void quicksort_seq(int *a, long lo, long hi) {
 
 int main(int argc, char** argv) {
     long n = strtol(argv[1], NULL, 10);
+    long max = ARR_MAX;
+
     int *a, *b;
     double dstart, dstop;
 
-    a = random_array(n);
+    a = random_array(n, max);
     b = (int *)malloc(n*sizeof(int));
     for (long i = 0; i < n; i++) {
         b[i] = a[i];
