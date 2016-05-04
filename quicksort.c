@@ -107,7 +107,6 @@ int main(int argc, char** argv) {
         print_array(a, 0, n);
     }
 
-    /*
     dstart = omp_get_wtime();
     quicksort_seq(a, 0, n);
     dstop = omp_get_wtime();
@@ -119,7 +118,6 @@ int main(int argc, char** argv) {
     }
 
     printf("%.5f,", dstop-dstart);
-    */
 
     if (DEBUG) {
         printf("initial array:\n");
