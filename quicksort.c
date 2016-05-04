@@ -3,6 +3,8 @@
 * NIM: 23515053
 * keterangan: 
 *   compilation: gcc -Wall -std=c11 -fopenmp quicksort.c -o quicksort
+*   env var: export OMP_THREAD_LIMIT= <2 * n_cores>
+*   example: export OMP_THREAD_LIMIT=24
 *   execute: ./quicksort <n>
 *   example: ./quicksort 1000000
 *   execute test: ./test.sh <name>
